@@ -3,6 +3,7 @@ from tkinter import messagebox
 FONT_NAME = "Courier"
 from random import choice, randint, shuffle
 import pyperclip
+import json
 
 
 # ---------------------------- PASSWORD GENERATOR ------------------------------- #
@@ -25,25 +26,60 @@ def generate_password():
     password_input.insert(0, password)
     pyperclip.copy(password)
 
+
+# ---------------------------- SEARCH ENTRY ------------------------------- #
+def search_entry():
+    website = website_input.get()
+    try:
+        with open("my_passwords.json", "r") as file:
+            data = json.load(file)
+    except FileNotFoundError:
+        messagebox.showinfo(title="No Matches", message=f"No password for {website} was found")
+    else:
+        if website in data:
+            username = data[website]["email"]
+            password = data[website]["password"]
+            messagebox.showinfo(title=website, message=f"{website} \nusername: {username} \npassword: {password}")
+        else:
+            messagebox.showinfo(title=website, message=f"{website} \nno username or password were found for this site")
+
+
+
 # ---------------------------- SAVE PASSWORD ------------------------------- #
 def save_password():
     website = website_input.get()
     username = username_input.get()
     password = password_input.get()
+    new_data = {
+        website: {
+            "email": username,
+            "password": password,
+        }
+    }
 
     if len(website) < 1 or len(password) < 1:
         messagebox.showinfo(title="check info", message=f"you left blank fields")
     else:
-        is_ok = messagebox.askokcancel(title=website, message=f"These are are the details entered: \nUsername: {username}"
-                                                              f"\nPassword:{password}, \nis it ok to save?")
-        if is_ok:
-    # ---------- saves the passwords to a txt file inside this repo --------#
-            with open("my_passwords.txt", "a") as file:
-                file.write(f"{website} | {username} | {password} \n")
+        try:
+            with open("my_passwords.json", "r") as file:
+                # reading saved data
+                data = json.load(file)
+        except FileNotFoundError:
+            with open("my_passwords.json", "w") as file:
+                # saving updated data
+                json.dump(new_data, file, indent=4)
+        else:
+            # updating old data with new one
+            data.update(new_data)
 
-            website_input.delete(0, END)
-            password_input.delete(0, END)
-            messagebox.showinfo(title="confirmed", message=f"Success, your password for {website} was saved")
+            with open("my_passwords.json", "w") as file:
+                json.dump(data, file, indent=4)
+        finally:
+                website_input.delete(0, END)
+                password_input.delete(0, END)
+                messagebox.showinfo(title="confirmed", message=f"Success, your password for {website} was saved")
+
+
 
 
 # ---------------------------- UI SETUP ------------------------------- #
@@ -60,8 +96,8 @@ canvas.grid(column=1, row=0)
 website_label = Label(text="Website:", font=(FONT_NAME, 12, "bold"))
 website_label.grid(column=0, row=1)
 
-website_input = Entry(width=35)
-website_input.grid(column=1, row=1, columnspan=2)
+website_input = Entry()
+website_input.grid(column=1, row=1)
 website_input.focus()
 
 username_label = Label(text="Email/Username:", font=(FONT_NAME, 12, "bold"))
@@ -78,6 +114,8 @@ password_label.grid(column=0, row=3)
 password_input = Entry(width=21)
 password_input.grid(column=1, row=3)
 
+search_button = Button(text="           Search          ", highlightthickness=0, command=search_entry)
+search_button.grid(column=2, row=1)
 
 add_button = Button(text="Add", highlightthickness=0, width=36, command=save_password)
 add_button.grid(column=1, row=4, columnspan=2)
